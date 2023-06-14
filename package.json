@@ -1,0 +1,30 @@
+{
+  "type": "module",
+  "name": "simple-dynamo-utils",
+  "version": "1.0.6",
+  "description": "AWS DynamoDB store and query functions simplified",
+  "main": "src/index.js",
+  "files": [ "./src/*" ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbhijeetSingla/simple-dynamo-utils.git"
+  },
+  "keywords": [
+    "AWS",
+    "DynamoDB",
+    "Database",
+    "dynamodb",
+    "dynamodb expressions",
+    "expressions",
+    "expression"
+  ],
+  "author": "Abhijeet Singla",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AbhijeetSingla/simple-dynamo-utils/issues"
+  },
+  "homepage": "https://github.com/AbhijeetSingla/simple-dynamo-utils#readme"
+}
