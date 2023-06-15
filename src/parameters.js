@@ -11,6 +11,9 @@ import { parseCondition, parseOperator } from './utils.js'
  */
 
 function generateFilters({ filters, names, values }){
+    if (!filters) throw new Error('Invalid Parameters: No filters Provided')
+    if (!filters.length) throw new Error('Invalid Parameters: No filters in array')
+
     const expression = filters?.map(({ attribute, value, rangeValue, comparator, condition }, index) => {
         
         const attributeHash = (() => {
@@ -45,6 +48,7 @@ function generateFilters({ filters, names, values }){
 }
 
 function generateProjectionExpression({expressionNames, projection}){
+    if (!projection) throw new Error('Invalid Parameters: No projection expression Provided')
     const p_expression = projection?.map((attribute, index) => {
         if(!Object.values(expressionNames).includes(attribute)) {
             expressionNames[`#F${index}`] = attribute
