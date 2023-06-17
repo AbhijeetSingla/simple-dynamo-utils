@@ -10,57 +10,67 @@ import { parseCondition, parseOperator } from './utils.js'
  * @typedef {{ attribute: string, value: DynamoDB.AttributeValue, rangeValue: DynamoDB.AttributeValue, condition: FilterCondition, comparator: Comparator }} Filter
  */
 
-function generateFilters({ filters, names, values }){
-    if (!filters) throw new Error('Invalid Parameters: No filters Provided')
-    if (!filters.length) throw new Error('Invalid Parameters: No filters in array')
+function generateFilters({ filters, names, values }) {
+	if (!filters) throw new Error('Invalid Parameters: No filters Provided')
+	if (!filters.length)
+		throw new Error('Invalid Parameters: No filters in array')
 
-    const expression = filters?.map(({ attribute, value, rangeValue, comparator, condition }, index) => {
-        
-        const attributeHash = (() => {
-            if(!Object.values(names).includes(attribute)) {
-                names[`#F${index}`] = attribute
-                return `#F${index}`
-            }
-            return Object.keys(names).find(key => names[key] === attribute) || ''
-        })()
+	const expression = filters
+		?.map(({ attribute, value, rangeValue, comparator, condition }, index) => {
+			const attributeHash = (() => {
+				if (!Object.values(names).includes(attribute)) {
+					names[`#F${index}`] = attribute
+					return `#F${index}`
+				}
+				return Object.keys(names).find((key) => names[key] === attribute) || ''
+			})()
 
-        if(value) values[`:v${index}`] = value
-        if(rangeValue) values[`:rv${index}`] = rangeValue
+			if (value) values[`:v${index}`] = value
+			if (rangeValue) values[`:rv${index}`] = rangeValue
 
-        const string = (()=> {
-            if(condition) return parseCondition({
-                name: attributeHash,
-                condition,
-                ...(value ? {value: `:v${index}`} : {}),
-                ...(rangeValue ? {rangeValue: `:rv${index}`} : {}),
-            })
-            return ''
-        })()
+			const string = (() => {
+				if (condition)
+					return parseCondition({
+						name: attributeHash,
+						condition,
+						...(value ? { value: `:v${index}` } : {}),
+						...(rangeValue ? { rangeValue: `:rv${index}` } : {}),
+					})
+				return ''
+			})()
 
-        const operator = index || comparator ? parseOperator(comparator) : ''
+			const operator = index || comparator ? parseOperator(comparator) : ''
 
-        return [operator, string].join(' ')
-    }).join(' ')
+			return [operator, string].join(' ')
+		})
+		.join(' ')
 
-    if(expression.includes('false')) return { }
+	if (expression.includes('false')) return {}
 
-    return { names, values, expression }
+	return { names, values, expression }
 }
 
-function generateProjectionExpression({expressionNames, projection}){
-    if (!projection) throw new Error('Invalid Parameters: No projection expression Provided')
-    const p_expression = projection?.map((attribute, index) => {
-        if(!Object.values(expressionNames).includes(attribute)) {
-            expressionNames[`#F${index}`] = attribute
-            return `#F${index}`
-        }
-        return Object.keys(expressionNames).find(key => expressionNames[key] === attribute) || ''
-    }).join(', ')
+function generateProjectionExpression({ expressionNames, projection }) {
+	if (!projection)
+		throw new Error('Invalid Parameters: No projection expression Provided')
+	const p_expression = projection
+		?.map((attribute, index) => {
+			if (!Object.values(expressionNames).includes(attribute)) {
+				expressionNames[`#P${index}`] = attribute
+				return `#P${index}`
+			}
+			return (
+				Object.keys(expressionNames).find(
+					(key) => expressionNames[key] === attribute,
+				) || ''
+			)
+		})
+		.join(', ')
 
-    return {
-        names: expressionNames,
-        p_expression: p_expression
-    }
+	return {
+		names: expressionNames,
+		p_expression: p_expression,
+	}
 }
 
 /**
@@ -74,40 +84,59 @@ function generateProjectionExpression({expressionNames, projection}){
  * @param {number?} scanInput.segment - The number of segment of scan operation (required with totalSegments).
  * @param {number?} scanInput.totalSegments - The number of total segments in operation of parallel scan.
  */
-function generateScanParams({ table, filters, projection, startKey, limit, segment, totalSegments }){
-    //TODO: check if reduce would work better
-    if(!filters?.length && !projection?.length) return { 
-        TableName: table, 
-        ...(startKey ? { ExclusiveStartKey: startKey } : {}),
-        ...(limit ? { Limit: limit } : {} ),
-        ...(totalSegments ? {Segment: segment, TotalSegments: totalSegments} : {})
-    }
-    const names = {}
-    const p_expression = projection && generateProjectionExpression({
-        expressionNames: names,
-        projection: projection
-    }).p_expression || ''
-    if(!filters?.length) return { 
-        TableName: table, 
-        ExpressionAttributeNames: names, 
-        ...(startKey ? { ExclusiveStartKey: startKey } : {}),
-        ...(limit ? { Limit: limit } : {} ),
-        ...(totalSegments ? {Segment: segment, TotalSegments: totalSegments} : {})
-    }
-    const values = {}
+function generateScanParams({
+	table,
+	filters,
+	projection,
+	startKey,
+	limit,
+	segment,
+	totalSegments,
+}) {
+	//TODO: check if reduce would work better
+	if (!filters?.length && !projection?.length)
+		return {
+			TableName: table,
+			...(startKey ? { ExclusiveStartKey: startKey } : {}),
+			...(limit ? { Limit: limit } : {}),
+			...(totalSegments
+				? { Segment: segment, TotalSegments: totalSegments }
+				: {}),
+		}
+	const names = {}
+	const p_expression =
+		(projection &&
+			generateProjectionExpression({
+				expressionNames: names,
+				projection: projection,
+			}).p_expression) ||
+		''
+	if (!filters?.length)
+		return {
+			TableName: table,
+			ExpressionAttributeNames: names,
+			...(startKey ? { ExclusiveStartKey: startKey } : {}),
+			...(limit ? { Limit: limit } : {}),
+			...(totalSegments
+				? { Segment: segment, TotalSegments: totalSegments }
+				: {}),
+		}
+	const values = {}
 
-    const { expression } = generateFilters({ filters, names, values })
-    
-    return {
-        TableName: table,
-        ExpressionAttributeValues: values,
-        ExpressionAttributeNames: names,
-        ...(expression ? {FilterExpression: expression.trim()} : {}),
-        ...(p_expression ? {ProjectionExpression: p_expression} : {}),
-        ...(startKey ? { ExclusiveStartKey: startKey } : {}),
-        ...(limit ? { Limit: limit } : {} ),
-        ...(totalSegments ? {Segment: segment, TotalSegments: totalSegments} : {})
-    }
+	const { expression } = generateFilters({ filters, names, values })
+
+	return {
+		TableName: table,
+		ExpressionAttributeValues: values,
+		ExpressionAttributeNames: names,
+		...(expression ? { FilterExpression: expression.trim() } : {}),
+		...(p_expression ? { ProjectionExpression: p_expression } : {}),
+		...(startKey ? { ExclusiveStartKey: startKey } : {}),
+		...(limit ? { Limit: limit } : {}),
+		...(totalSegments
+			? { Segment: segment, TotalSegments: totalSegments }
+			: {}),
+	}
 }
 
 /**
@@ -122,44 +151,62 @@ function generateScanParams({ table, filters, projection, startKey, limit, segme
  * @param {string[]?} queryInput.projection - Attributes to return after the query command.
  * @param {number?} scanInput.limit - The number of items to query.
  */
-function generateQueryParams({table, partition, sort, filters, startKey, indexName, projection, limit}){
+function generateQueryParams({
+	table,
+	partition,
+	sort,
+	filters,
+	startKey,
+	indexName,
+	projection,
+	limit,
+}) {
+	const names = {
+			'#KP': partition.name,
+			...(sort?.name ? { '#KS': sort.name } : {}),
+		},
+		values = {
+			':valP': partition.value,
+			...(sort?.name ? { ':valS': sort.value } : {}),
+		}
 
-    const names = {
-        '#KP': partition.name,
-        ...(sort?.name ? { '#KS': sort.name } : {})
-    }, values = {
-        ':valP': partition.value,
-        ...(sort?.name ? { ':valS': sort.value } : {})
-    }
+	const sortExpression = sort?.name
+		? 'AND'.concat(
+				parseCondition({
+					name: '#KS',
+					value: ':valS',
+					condition: sort?.condition,
+				}),
+		  )
+		: ''
 
-    const sortExpression = sort?.name ?  'AND'.concat(parseCondition({
-        name: '#KS',
-        value: ':valS',
-        condition: sort?.condition
-    })) : '';
+	const keyExpression = '#KP = :valP' + sortExpression
 
-    const keyExpression = '#KP = :valP' + sortExpression
+	const filterExpression = filters
+		? generateFilters({ filters, names, values }).expression || ''
+		: ''
 
-    const filterExpression = filters ? generateFilters({ filters, names, values }).expression || '' : ''
-    
-    const projectionExpression = projection?.length ? generateProjectionExpression({
-        expressionNames: names,
-        projection
-    }).p_expression : ''
+	const projectionExpression = projection?.length
+		? generateProjectionExpression({
+				expressionNames: names,
+				projection,
+		  }).p_expression
+		: ''
 
-    return {
-        TableName: table,
-        KeyConditionExpression: keyExpression,
-        ExpressionAttributeNames: names,
-        ExpressionAttributeValues: values,
-        ...(filterExpression ? { FilterExpression: filterExpression.trim() } : {}),
-        ...(projectionExpression ? { ProjectionExpression: projectionExpression.trim() } : {}),
-        ...(startKey ? { ExclusiveStartKey: startKey } : {}),
-        ...(indexName ? { IndexName: indexName } : {}),
-        ...(limit ? { Limit: limit } : {})
-    }
+	return {
+		TableName: table,
+		KeyConditionExpression: keyExpression,
+		ExpressionAttributeNames: names,
+		ExpressionAttributeValues: values,
+		...(filterExpression ? { FilterExpression: filterExpression.trim() } : {}),
+		...(projectionExpression
+			? { ProjectionExpression: projectionExpression.trim() }
+			: {}),
+		...(startKey ? { ExclusiveStartKey: startKey } : {}),
+		...(indexName ? { IndexName: indexName } : {}),
+		...(limit ? { Limit: limit } : {}),
+	}
 }
-
 
 /**
  * Generate update expression and related objects for names and values.
@@ -171,55 +218,69 @@ function generateQueryParams({table, partition, sort, filters, startKey, indexNa
  * @param {string?} updateInput.expression - A custom update expression to overwrite the generated one for better control.
  * @param {('NONE' | 'ALL_NEW' | 'ALL_OLD' | 'UPDATED_NEW' | 'UPDATED_OLD')} updateInput.returnItems - Items to return after the update command.
  */
-function generateUpdateParams({table, partition, sort = {}, attributes, expression : customExpression = '', returnItems}) {
-    if (!attributes) throw new Error('Invalid Parameters: No Item Object Provided')
-    if (!Object.keys(attributes).length) throw new Error('Invalid parameters: no attributes to update')
+function generateUpdateParams({
+	table,
+	partition,
+	sort = {},
+	attributes,
+	expression: customExpression = '',
+	returnItems,
+}) {
+	if (!attributes)
+		throw new Error('Invalid Parameters: No Item Object Provided')
+	if (!Object.keys(attributes).length)
+		throw new Error('Invalid parameters: no attributes to update')
 
-    const names = {}, values = {}
-    //TODO: reduce code
-    if(customExpression){
-        Object.entries(item).map(([key, val], index) => {
-            if(key.includes('.')){
-                key.split('.').map((k, index) => names[`#UN${index}`] = k )
-            } else {
-                names[`#U${index}`] = key
-            }
-            values[`:val${index}`] = val
-        })
-        return {
-            TableName: table,
-            Key: {
-                [partition.name]: partition.value,
-                ...(Object.keys(sort).length ? { [sort.name]: sort.value } : {})
-            },
-            ExpressionAttributeNames: names,
-            ExpressionAttributeValues: values,
-            UpdateExpression: customExpression,
-        ...(returnItems ? { ReturnValues: returnItems } : {})
-        }
-    }
-    
-    const expression = 'SET ' + Object.entries(attributes).map(([property, value], index) => {
-        values[`:val${index}`] = value
-        names[`#U${index}`] = property
-        return parseCondition({
-          name: `#U${index}`,
-          value: `:val${index}`,
-          condition: 'equal'
-        })
-    }).join(', ')
+	const names = {},
+		values = {}
+	//TODO: reduce code
+	if (customExpression) {
+		Object.entries(item).map(([key, val], index) => {
+			if (key.includes('.')) {
+				key.split('.').map((k, index) => (names[`#UN${index}`] = k))
+			} else {
+				names[`#U${index}`] = key
+			}
+			values[`:val${index}`] = val
+		})
+		return {
+			TableName: table,
+			Key: {
+				[partition.name]: partition.value,
+				...(Object.keys(sort).length ? { [sort.name]: sort.value } : {}),
+			},
+			ExpressionAttributeNames: names,
+			ExpressionAttributeValues: values,
+			UpdateExpression: customExpression,
+			...(returnItems ? { ReturnValues: returnItems } : {}),
+		}
+	}
 
-    return {
-        TableName: table,
-        Key: {
-            [partition.name]: partition.value,
-            ...(Object.keys(sort).length? { [sort.name]: sort.value } : {})
-        },
-        ExpressionAttributeNames: names,
-        ExpressionAttributeValues: values,
-        UpdateExpression: expression,
-        ...(returnItems ? { ReturnValues: returnItems } : {})
-    }
+	const expression =
+		'SET ' +
+		Object.entries(attributes)
+			.map(([property, value], index) => {
+				values[`:val${index}`] = value
+				names[`#U${index}`] = property
+				return parseCondition({
+					name: `#U${index}`,
+					value: `:val${index}`,
+					condition: 'equal',
+				})
+			})
+			.join(', ')
+
+	return {
+		TableName: table,
+		Key: {
+			[partition.name]: partition.value,
+			...(Object.keys(sort).length ? { [sort.name]: sort.value } : {}),
+		},
+		ExpressionAttributeNames: names,
+		ExpressionAttributeValues: values,
+		UpdateExpression: expression,
+		...(returnItems ? { ReturnValues: returnItems } : {}),
+	}
 }
 
 /**
@@ -230,27 +291,32 @@ function generateUpdateParams({table, partition, sort = {}, attributes, expressi
  * @param {{ name: string, value: DynamoDB.AttributeValue }?} getInput.sort - The getInput's sort key details.
  * @param {string[]?} getInput.projection - Attributes to return after the update command.
  */
-function generateGetParams({ table, partition, sort, projection }){
-    if (!table) throw new Error('Invalid Parameters: no table name provided')
-    if (!partition) throw new Error('Invalid Parameters: no keys object provided')
-    if (!Object.keys(partition).length) throw new Error('Invalid parameters: empty keys object')
-    const names = {}
-    const projectionExpression = projection?.length ? generateProjectionExpression({
-        expressionNames: names,
-        projection
-    }).p_expression : ''
-    const projectionObject = projection?.length ? {
-        ExpressionAttributeNames: names,
-        ProjectionExpression: projectionExpression
-    } : {}
-    return {
-        TableName: table,
-        Key: {
-            [partition.name]: partition.value,
-            ...(sort? { [sort.name]: sort.value } : {})
-        },
-        ...(projection ? projectionObject : {})
-    }
+function generateGetParams({ table, partition, sort, projection }) {
+	if (!table) throw new Error('Invalid Parameters: no table name provided')
+	if (!partition) throw new Error('Invalid Parameters: no keys object provided')
+	if (!Object.keys(partition).length)
+		throw new Error('Invalid parameters: empty keys object')
+	const names = {}
+	const projectionExpression = projection?.length
+		? generateProjectionExpression({
+				expressionNames: names,
+				projection,
+		  }).p_expression
+		: ''
+	const projectionObject = projection?.length
+		? {
+				ExpressionAttributeNames: names,
+				ProjectionExpression: projectionExpression,
+		  }
+		: {}
+	return {
+		TableName: table,
+		Key: {
+			[partition.name]: partition.value,
+			...(sort ? { [sort.name]: sort.value } : {}),
+		},
+		...(projection ? projectionObject : {}),
+	}
 }
 
 /**
@@ -262,15 +328,21 @@ function generateGetParams({ table, partition, sort, projection }){
  * @param {boolean?} deleteInput.returnItem - Attributes to return after the delete command.
  * @todo deleteInput.condition - The condition expression to execute this command.
  */
-function generateDeleteParams({table, partition, sort, returnItem, condition}){
-    return {
-        TableName: table,
-        Key: {
-            [partition.name]: partition.value,
-            ...(sort? { [sort.name]: sort.value } : {})
-        },
-        ...(returnItem ? { ReturnValues: 'ALL_OLD' } : { ReturnValues: 'NONE' })
-    }
+function generateDeleteParams({
+	table,
+	partition,
+	sort,
+	returnItem,
+	condition,
+}) {
+	return {
+		TableName: table,
+		Key: {
+			[partition.name]: partition.value,
+			...(sort ? { [sort.name]: sort.value } : {}),
+		},
+		...(returnItem ? { ReturnValues: 'ALL_OLD' } : { ReturnValues: 'NONE' }),
+	}
 }
 
 /**
@@ -282,12 +354,12 @@ function generateDeleteParams({table, partition, sort, returnItem, condition}){
  * @todo putInput.condition - The condition expression to execute this command.
  * @todo putInput.exists - The condition to check before attaching conditional operation.
  */
-function generatePutParams({ table, item, returnOldItem, condition }){
-    return {
-        TableName: table,
-        Item: item,
-        ...(returnOldItem ? { ReturnValues: 'ALL_OLD' } : { ReturnValues: 'NONE' })
-    }
+function generatePutParams({ table, item, returnOldItem, condition }) {
+	return {
+		TableName: table,
+		Item: item,
+		...(returnOldItem ? { ReturnValues: 'ALL_OLD' } : { ReturnValues: 'NONE' }),
+	}
 }
 
 // function createBatchWriteParams(batchData) {
@@ -325,10 +397,10 @@ function generatePutParams({ table, item, returnOldItem, condition }){
 // }
 
 export {
-    generateGetParams,
-    generateScanParams,
-    generateQueryParams,
-    generateUpdateParams,
-    generatePutParams,
-    generateDeleteParams
+	generateGetParams,
+	generateScanParams,
+	generateQueryParams,
+	generateUpdateParams,
+	generatePutParams,
+	generateDeleteParams,
 }
