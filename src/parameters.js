@@ -8,6 +8,7 @@ import { parseCondition, parseOperator } from './utils.js'
  * @typedef {('equal' | 'lessThan' | 'lessThanEqual' | 'greaterThan' | 'greaterThanEqual' | 'between' | 'beginsWith' | 'startsWith')} SortConditions
  * @typedef {('equal' | 'notEqual' | 'lessThan' | 'lessThanEqual' | 'greaterThan' | 'greaterThanEqual' | 'between' | 'beginsWith' | 'startsWith' | 'contains' | 'listAppend' | 'exists' | 'notExists' | 'type' | 'size')} FilterCondition
  * @typedef {{ attribute: string, value: DynamoDB.AttributeValue, rangeValue: DynamoDB.AttributeValue, condition: FilterCondition, comparator: Comparator }} Filter
+ * @typedef {{ table: string, items: Record<string, DynamoDB.AttributeValue>[], projection: string }} BatchGetData
  * @typedef {{ table: string, putItems: Record<string, DynamoDB.AttributeValue>[], deleteItems: Record<string, DynamoDB.AttributeValue>[] }} BatchWriteData
  */
 
@@ -398,15 +399,23 @@ function createBatchWriteParams(batchData) {
     }
 }
 
-// function createBatchGetParams(batchGetData) {
-//     return {
-//         RequestItems: {
-//             ...Object.fromEntries(batchGetData.map(({ itemArray, tableName }) => {
-//                 return [ tableName,  { Keys: itemArray } ]
-//             }))
-//         }
-//     }
-// }
+/**
+ * Generate BatchGetItems expression and related objects for names and values.
+ * @param {BatchGetData[]} batchData - The Array of batch execute data.
+ * @param {string} batchGetData.table - The name of the dynamodb table.
+ * @param {Record<string, DynamoDB.AttributeValue>[]} batchGetData.items - The array of items to Get.
+ * @param {string[]?} batchGetData.projection - The array of attributes to get.
+ */
+function createBatchGetParams(batchData) {
+    return {
+        RequestItems: {
+            ...Object.fromEntries(batchData.map(({ table, items, projection }) => {
+                const { names, p_expression } = generateProjectionExpression({ expressionNames: {}, projection })
+                return [ table,  { Keys: items, ...( projection ? { Projection: p_expression, ExpressionAttributeNames: names } : {}) }]
+            }))
+        }
+    }
+}
 
 export {
 	generateGetParams,
@@ -416,4 +425,5 @@ export {
 	generatePutParams,
 	generateDeleteParams,
     createBatchWriteParams,
+    createBatchGetParams
 }
