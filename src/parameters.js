@@ -8,6 +8,7 @@ import { parseCondition, parseOperator } from './utils.js'
  * @typedef {('equal' | 'lessThan' | 'lessThanEqual' | 'greaterThan' | 'greaterThanEqual' | 'between' | 'beginsWith' | 'startsWith')} SortConditions
  * @typedef {('equal' | 'notEqual' | 'lessThan' | 'lessThanEqual' | 'greaterThan' | 'greaterThanEqual' | 'between' | 'beginsWith' | 'startsWith' | 'contains' | 'listAppend' | 'exists' | 'notExists' | 'type' | 'size')} FilterCondition
  * @typedef {{ attribute: string, value: DynamoDB.AttributeValue, rangeValue: DynamoDB.AttributeValue, condition: FilterCondition, comparator: Comparator }} Filter
+ * @typedef {{ table: string, putItems: Record<string, DynamoDB.AttributeValue>[], deleteItems: Record<string, DynamoDB.AttributeValue>[] }} BatchWriteData
  */
 
 function generateFilters({ filters, names, values }) {
@@ -362,29 +363,40 @@ function generatePutParams({ table, item, returnOldItem, condition }) {
 	}
 }
 
-// function createBatchWriteParams(batchData) {
-//     return {
-//         RequestItems: {
-//             ...Object.fromEntries(batchData.map(({ tableName, itemArray }) => {
-//                 return [tableName, itemArray.map(item => {
-//                     const { requestType = 'put', ...rest } = item;
-//                     const type = (()=> {
-//                         if(requestType === 'put') return 'PutRequest'
-//                         if(requestType === 'delete') return 'DeleteRequest'
-//                         throw Error('Invalid batch request type, it can either be "put" or "delete"')
-//                     })()
-//                     return {
-//                         [type]: {
-//                             Item: {
-//                                 ...rest
-//                             }
-//                         }
-//                     }
-//                 })]
-//             }))
-//         }
-//     }
-// }
+/**
+ * Generate BatchWriteItems expression and related objects for names and values.
+ * @param {BatchWriteData[]} batchData - The Array of batch execute data.
+ * @param {string} batchWriteData.table - The name of the dynamodb table.
+ * @param {Record<string, DynamoDB.AttributeValue>[]?} batchWriteData.putItems - The array of items to write.
+ * @param {Record<string, DynamoDB.AttributeValue>[]?} batchWriteData.deleteItems - The array of items to delete.
+ */
+function createBatchWriteParams(batchData) {
+    return {
+        RequestItems: {
+            ...Object.fromEntries(batchData.map(({ table, putItems, deleteItems }) => {
+                if(!table) throw new Error('Invalid Parameters: no table name provided')
+                return [ table,
+                    [
+                        ...(putItems ? putItems.map(item => {
+                            return {
+                                'PutRequest': {
+                                    Item: item
+                                }
+                            }
+                        }
+                    ) : []),
+                    ...(deleteItems ? deleteItems.map(item => {
+                        return {
+                            'DeleteRequest': {
+                                Item: item
+                            }
+                        }
+                    }) : [])
+                    ]]
+            }))
+        }
+    }
+}
 
 // function createBatchGetParams(batchGetData) {
 //     return {
@@ -403,4 +415,5 @@ export {
 	generateUpdateParams,
 	generatePutParams,
 	generateDeleteParams,
+    createBatchWriteParams,
 }
