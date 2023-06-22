@@ -14,11 +14,11 @@ import { parseCondition, parseOperator } from './utils.js'
 
 function generateFilters({ filters, names, values }) {
 	if (!filters) throw new Error('Invalid Parameters: No filters Provided')
-	if (!filters.length)
-		throw new Error('Invalid Parameters: No filters in array')
+	if (!filters.length) throw new Error('Invalid Parameters: No filters in array')
 
 	const expression = filters
 		?.map(({ attribute, value, rangeValue, comparator, condition }, index) => {
+			
 			const attributeHash = (() => {
 				if (!Object.values(names).includes(attribute)) {
 					names[`#F${index}`] = attribute
@@ -44,8 +44,7 @@ function generateFilters({ filters, names, values }) {
 			const operator = index || comparator ? parseOperator(comparator) : ''
 
 			return [operator, string].join(' ')
-		})
-		.join(' ')
+		}).join(' ')
 
 	if (expression.includes('false')) return {}
 
@@ -153,24 +152,9 @@ function generateScanParams({
  * @param {string[]?} queryInput.projection - Attributes to return after the query command.
  * @param {number?} scanInput.limit - The number of items to query.
  */
-function generateQueryParams({
-	table,
-	partition,
-	sort,
-	filters,
-	startKey,
-	indexName,
-	projection,
-	limit,
-}) {
-	const names = {
-			'#KP': partition.name,
-			...(sort?.name ? { '#KS': sort.name } : {}),
-		},
-		values = {
-			':valP': partition.value,
-			...(sort?.name ? { ':valS': sort.value } : {}),
-		}
+function generateQueryParams({ table, partition, sort, filters, startKey, indexName, projection, limit }) {
+	const names = {	'#KP': partition.name, ...(sort?.name ? { '#KS': sort.name } : {}) },
+          values = { ':valP': partition.value, ...(sort?.name ? { ':valS': sort.value } : {}) }
 
 	const sortExpression = sort?.name
 		? ' AND '.concat(
