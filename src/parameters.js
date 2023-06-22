@@ -27,7 +27,7 @@ function generateFilters({ filters, names, values }) {
 				return Object.keys(names).find((key) => names[key] === attribute) || ''
 			})()
 
-			if (value) values[`:v${index}`] = value
+			if (value !== undefined) values[`:v${index}`] = value
 			if (rangeValue) values[`:rv${index}`] = rangeValue
 
 			const string = (() => {
@@ -35,7 +35,7 @@ function generateFilters({ filters, names, values }) {
 					return parseCondition({
 						name: attributeHash,
 						condition,
-						...(value ? { value: `:v${index}` } : {}),
+						...(value !== undefined ? { value: `:v${index}` } : {}),
 						...(rangeValue ? { rangeValue: `:rv${index}` } : {}),
 					})
 				return ''
