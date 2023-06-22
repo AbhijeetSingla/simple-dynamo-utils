@@ -173,7 +173,7 @@ function generateQueryParams({
 		}
 
 	const sortExpression = sort?.name
-		? 'AND'.concat(
+		? ' AND '.concat(
 				parseCondition({
 					name: '#KS',
 					value: ':valS',
