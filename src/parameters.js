@@ -389,7 +389,7 @@ function createBatchWriteParams(batchData) {
                     ...(deleteItems ? deleteItems.map(item => {
                         return {
                             'DeleteRequest': {
-                                Item: item
+                                Key: item
                             }
                         }
                     }) : [])
