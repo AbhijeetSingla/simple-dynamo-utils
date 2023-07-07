@@ -144,8 +144,8 @@ function generateScanParams({
  * Generate QueryItem expression.
  * @param {Object} queryInput - The details for table in which item is.
  * @param {string} queryInput.table - The name of the dynamodb table.
- * @param {{ name: string, value: DynamoDB.AttributeValue }} queryInput.partition - The queryInput's partition key details.
- * @param {{ name: string, value: DynamoDB.AttributeValue, condition: SortConditions }?} queryInput.sort - The queryInput's sort key details.
+ * @param {{ attribute: string, value: DynamoDB.AttributeValue }} queryInput.partition - The queryInput's partition key details.
+ * @param {{ attribute: string, value: DynamoDB.AttributeValue, condition: SortConditions }?} queryInput.sort - The queryInput's sort key details.
  * @param {Filter[]?} queryInput.filters - The filters to apply after query.
  * @param {Record<string, DynamoDB.AttributeValue>?} queryInput.startKey - The index name to query.
  * @param {string?} queryInput.indexName - The index name to query.
@@ -153,10 +153,10 @@ function generateScanParams({
  * @param {number?} scanInput.limit - The number of items to query.
  */
 function generateQueryParams({ table, partition, sort, filters, startKey, indexName, projection, limit }) {
-	const names = {	'#KP': partition.name, ...(sort?.name ? { '#KS': sort.name } : {}) },
-          values = { ':valP': partition.value, ...(sort?.name ? { ':valS': sort.value } : {}) }
+	const names = {	'#KP': partition.attribute, ...(sort?.attribute ? { '#KS': sort.attribute } : {}) },
+          values = { ':valP': partition.value, ...(sort?.attribute ? { ':valS': sort.value } : {}) }
 
-	const sortExpression = sort?.name
+	const sortExpression = sort?.attribute
 		? ' AND '.concat(
 				parseCondition({
 					name: '#KS',
@@ -198,8 +198,8 @@ function generateQueryParams({ table, partition, sort, filters, startKey, indexN
  * Generate update expression and related objects for names and values.
  * @param {Object} updateInput - The details for table in which item is to be updated.
  * @param {string} updateInput.table - The name of the dynamodb table.
- * @param {{ name: string, value: DynamoDB.AttributeValue }} updateInput.partition - The updateInput's partition key details.
- * @param {{ name: string, value: DynamoDB.AttributeValue }?} updateInput.sort - The updateInput's sort key details.
+ * @param {{ attribute: string, value: DynamoDB.AttributeValue }} updateInput.partition - The updateInput's partition key details.
+ * @param {{ attribute: string, value: DynamoDB.AttributeValue }?} updateInput.sort - The updateInput's sort key details.
  * @param {Record<string, DynamoDB.AttributeValue} updateInput.attributes - The attributes for the record which need to be updated.
  * @param {string?} updateInput.expression - A custom update expression to overwrite the generated one for better control.
  * @param {('NONE' | 'ALL_NEW' | 'ALL_OLD' | 'UPDATED_NEW' | 'UPDATED_OLD')} updateInput.returnItems - Items to return after the update command.
@@ -232,8 +232,8 @@ function generateUpdateParams({
 		return {
 			TableName: table,
 			Key: {
-				[partition.name]: partition.value,
-				...(Object.keys(sort).length ? { [sort.name]: sort.value } : {}),
+				[partition.attribute]: partition.value,
+				...(Object.keys(sort).length ? { [sort.attribute]: sort.value } : {}),
 			},
 			ExpressionAttributeNames: names,
 			ExpressionAttributeValues: values,
@@ -259,8 +259,8 @@ function generateUpdateParams({
 	return {
 		TableName: table,
 		Key: {
-			[partition.name]: partition.value,
-			...(Object.keys(sort).length ? { [sort.name]: sort.value } : {}),
+			[partition.attribute]: partition.value,
+			...(Object.keys(sort).length ? { [sort.attribute]: sort.value } : {}),
 		},
 		ExpressionAttributeNames: names,
 		ExpressionAttributeValues: values,
@@ -273,8 +273,8 @@ function generateUpdateParams({
  * Generate GetItem expression.
  * @param {Object} getInput - The details for table in which item is.
  * @param {string} getInput.table - The name of the dynamodb table.
- * @param {{ name: string, value: DynamoDB.AttributeValue }} getInput.partition - The getInput's partition key details.
- * @param {{ name: string, value: DynamoDB.AttributeValue }?} getInput.sort - The getInput's sort key details.
+ * @param {{ attribute: string, value: DynamoDB.AttributeValue }} getInput.partition - The getInput's partition key details.
+ * @param {{ attribute: string, value: DynamoDB.AttributeValue }?} getInput.sort - The getInput's sort key details.
  * @param {string[]?} getInput.projection - Attributes to return after the update command.
  */
 function generateGetParams({ table, partition, sort, projection }) {
@@ -298,8 +298,8 @@ function generateGetParams({ table, partition, sort, projection }) {
 	return {
 		TableName: table,
 		Key: {
-			[partition.name]: partition.value,
-			...(sort ? { [sort.name]: sort.value } : {}),
+			[partition.attribute]: partition.value,
+			...(sort ? { [sort.attribute]: sort.value } : {}),
 		},
 		...(projection ? projectionObject : {}),
 	}
@@ -309,8 +309,8 @@ function generateGetParams({ table, partition, sort, projection }) {
  * Generate DeleteItem expression.
  * @param {Object} deleteInput - The details for table in which item is to be deleted.
  * @param {string} deleteInput.table - The name of the dynamodb table.
- * @param {{ name: string, value: DynamoDB.AttributeValue }} deleteInput.partition - The deleteInput's partition key details.
- * @param {{ name: string, value: DynamoDB.AttributeValue }?} deleteInput.sort - The deleteInput's sort key details.
+ * @param {{ attribute: string, value: DynamoDB.AttributeValue }} deleteInput.partition - The deleteInput's partition key details.
+ * @param {{ attribute: string, value: DynamoDB.AttributeValue }?} deleteInput.sort - The deleteInput's sort key details.
  * @param {boolean?} deleteInput.returnItem - Attributes to return after the delete command.
  * @todo deleteInput.condition - The condition expression to execute this command.
  */
@@ -324,8 +324,8 @@ function generateDeleteParams({
 	return {
 		TableName: table,
 		Key: {
-			[partition.name]: partition.value,
-			...(sort ? { [sort.name]: sort.value } : {}),
+			[partition.attribute]: partition.value,
+			...(sort ? { [sort.attribute]: sort.value } : {}),
 		},
 		...(returnItem ? { ReturnValues: 'ALL_OLD' } : { ReturnValues: 'NONE' }),
 	}
@@ -335,12 +335,12 @@ function generateDeleteParams({
  * Generate PutItem expression and related objects for names and values.
  * @param {Object} putInput - The details for table in which item is to be created.
  * @param {string} putInput.table - The name of the dynamodb table.
- * @param {{ name: string, value: DynamoDB.AttributeValue }} putInput.item - Item attributes.
+ * @param {Record<string, DynamoDB.AttributeValue>} putInput.item - Item attributes.
  * @param {boolean?} putInput.returnOldItem - Items to return if an existing item was overwritten.
  * @todo putInput.condition - The condition expression to execute this command.
  * @todo putInput.exists - The condition to check before attaching conditional operation.
  */
-function generatePutParams({ table, item, returnOldItem, condition }) {
+function generatePutParams({ table, item, returnOldItem }) {
 	return {
 		TableName: table,
 		Item: item,
