@@ -410,8 +410,11 @@ function createBatchGetParams(batchData) {
     return {
         RequestItems: {
             ...Object.fromEntries(batchData.map(({ table, items, projection }) => {
+				if(projection){
                 const { names, p_expression } = generateProjectionExpression({ expressionNames: {}, projection })
                 return [ table,  { Keys: items, ...( projection ? { Projection: p_expression, ExpressionAttributeNames: names } : {}) }]
+				}
+                return [ table,  { Keys: items }]
             }))
         }
     }
