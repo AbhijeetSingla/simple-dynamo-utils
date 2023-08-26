@@ -1,8 +1,5 @@
 # simple-dynamo-utils
 This library includes simplified AWS DynamoDb functions.
-> [!CAUTION]
-> This library is still a WIP
-> Newer version can bring breaking changes
 
 # Install
 Just install the module with npm
