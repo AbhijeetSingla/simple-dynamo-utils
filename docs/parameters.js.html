@@ -1,5 +1,32 @@
-//@ts-check
-import { parseCondition, parseOperator } from './utils.js'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: parameters.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: parameters.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { parseCondition, parseOperator } from './utils.js'
 
 // //TODO: function generateExpressionNames(any object and values or array ) result is ['#f1', 'prop name']
 // //TODO: scan and query params pagination
@@ -81,7 +108,7 @@ function generateScanParams({
 	totalSegments
 }) {
 	//TODO: check if reduce would work better
-	if (!filters?.length && !projection?.length)
+	if (!filters?.length &amp;&amp; !projection?.length)
 		return {
 			TableName: table,
 			...(startKey ? { ExclusiveStartKey: startKey } : {}),
@@ -92,7 +119,7 @@ function generateScanParams({
 		}
 	const names = {}
 	const p_expression =
-		(projection &&
+		(projection &amp;&amp;
 			generateProjectionExpression({
 				expressionNames: names,
 				projection: projection,
@@ -138,7 +165,7 @@ function generateQueryParams({ table, partition, sort, filters, startKey, indexN
 	const sortExpression = sort?.attribute
 		? ' AND '.concat(
 				parseCondition({
-					attribute: '#KS',
+					name: '#KS',
 					value: ':valS',
 					condition: sort?.condition,
 				}),
@@ -179,7 +206,7 @@ function generateQueryParams({ table, partition, sort, filters, startKey, indexN
  * @param {string} updateInput.table - The name of the dynamodb table.
  * @param {{ attribute: string, value: DynamoDB.AttributeValue }} updateInput.partition - The updateInput's partition key details.
  * @param {{ attribute: string, value: DynamoDB.AttributeValue }?} updateInput.sort - The updateInput's sort key details.
- * @param {Record<string, DynamoDB.AttributeValue} updateInput.attributes - The attributes for the record which need to be updated.
+ * @param {Record&lt;string, DynamoDB.AttributeValue} updateInput.attributes - The attributes for the record which need to be updated.
  * @param {string?} updateInput.expression - A custom update expression to overwrite the generated one for better control.
  * @param {('NONE' | 'ALL_NEW' | 'ALL_OLD' | 'UPDATED_NEW' | 'UPDATED_OLD')} updateInput.returnItems - Items to return after the update command.
  */
@@ -314,7 +341,7 @@ function generateDeleteParams({
  * Generate PutItem expression and related objects for names and values.
  * @param {Object} putInput - The details for table in which item is to be created.
  * @param {string} putInput.table - The name of the dynamodb table.
- * @param {Record<string, DynamoDB.AttributeValue>} putInput.item - Item attributes.
+ * @param {Record&lt;string, DynamoDB.AttributeValue>} putInput.item - Item attributes.
  * @param {boolean?} putInput.returnOldItem - Items to return if an existing item was overwritten.
  * @todo putInput.condition - The condition expression to execute this command.
  * @todo putInput.exists - The condition to check before attaching conditional operation.
@@ -331,8 +358,8 @@ function generatePutParams({ table, item, returnOldItem }) {
  * Generate BatchWriteItems expression and related objects for names and values.
  * @param {BatchWriteData[]} batchData - The Array of batch execute data.
  * @param {string} batchWriteData.table - The name of the dynamodb table.
- * @param {Record<string, DynamoDB.AttributeValue>[]?} batchWriteData.putItems - The array of items to write.
- * @param {Record<string, DynamoDB.AttributeValue>[]?} batchWriteData.deleteItems - The array of items to delete.
+ * @param {Record&lt;string, DynamoDB.AttributeValue>[]?} batchWriteData.putItems - The array of items to write.
+ * @param {Record&lt;string, DynamoDB.AttributeValue>[]?} batchWriteData.deleteItems - The array of items to delete.
  */
 function createBatchWriteParams(batchData) {
     return {
@@ -366,7 +393,7 @@ function createBatchWriteParams(batchData) {
  * Generate BatchGetItems expression and related objects for names and values.
  * @param {BatchGetData[]} batchData - The Array of batch execute data.
  * @param {string} batchGetData.table - The name of the dynamodb table.
- * @param {Record<string, DynamoDB.AttributeValue>[]} batchGetData.items - The array of items to Get.
+ * @param {Record&lt;string, DynamoDB.AttributeValue>[]} batchGetData.items - The array of items to Get.
  * @param {string[]?} batchGetData.projection - The array of attributes to get.
  */
 function createBatchGetParams(batchData) {
@@ -392,4 +419,26 @@ export {
 	generateDeleteParams,
     createBatchWriteParams,
     createBatchGetParams
-}
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#createBatchGetParams">createBatchGetParams</a></li><li><a href="global.html#createBatchWriteParams">createBatchWriteParams</a></li><li><a href="global.html#generateDeleteParams">generateDeleteParams</a></li><li><a href="global.html#generateGetParams">generateGetParams</a></li><li><a href="global.html#generatePutParams">generatePutParams</a></li><li><a href="global.html#generateQueryParams">generateQueryParams</a></li><li><a href="global.html#generateScanParams">generateScanParams</a></li><li><a href="global.html#generateUpdateParams">generateUpdateParams</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Mon Dec 25 2023 22:34:47 GMT+0530 (India Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
